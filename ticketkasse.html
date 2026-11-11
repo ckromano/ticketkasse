@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ticketkasse</title>
+<style>
+  :root{
+    --bg:#f4f1ea; --card:#fff; --ink:#1d1b18; --muted:#6f6a61; --line:#e3ddd1;
+    --accent:#1f6f5c; --accent-ink:#fff; --warn:#b4432c; --soft:#e8f2ee;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#16150f; --card:#221f19; --ink:#f2eee6; --muted:#a39d91; --line:#36322a; --accent:#3fae8f; --accent-ink:#0f1a16; --warn:#e2725a; --soft:#1d2c27; }
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif}
+  main{max-width:480px;margin:0 auto;padding:calc(16px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) calc(28px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left))}
+  header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  h1{font-size:20px;margin:0;letter-spacing:-.01em}
+  .icon-btn{background:none;border:1px solid var(--line);color:var(--muted);border-radius:10px;padding:6px 10px;font-size:14px;cursor:pointer}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0}
+  .row + .row{border-top:1px solid var(--line);padding-top:12px;margin-top:6px}
+  .label b{display:block;font-size:17px}
+  .label span{color:var(--muted);font-size:14px}
+  .stepper{display:flex;align-items:center;gap:10px}
+  .stepper button{width:52px;height:52px;border-radius:14px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:26px;font-weight:600;cursor:pointer}
+  .stepper button.plus{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+  .stepper button:active{transform:scale(.95)}
+  .count{min-width:34px;text-align:center;font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}
+  .total{display:flex;justify-content:space-between;align-items:baseline}
+  .total .t-label{color:var(--muted);font-size:15px}
+  .total .t-val{font-size:40px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .breakdown{color:var(--muted);font-size:14px;margin-top:2px;min-height:18px}
+  .sub{font-size:14px;color:var(--muted);margin:0 0 8px}
+  .cash{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:10px}
+  .cash button{height:46px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:16px;font-weight:600;cursor:pointer}
+  .cash button:active{background:var(--soft)}
+  .given{display:flex;gap:8px}
+  .given input{flex:1;height:48px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:20px;padding:0 12px;font-variant-numeric:tabular-nums}
+  .given button{height:48px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--muted);font-size:14px;cursor:pointer}
+  .change{margin-top:12px;padding:12px;border-radius:12px;background:var(--soft);display:flex;justify-content:space-between;align-items:baseline}
+  .change .c-val{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums}
+  .change.short{background:transparent;border:1px dashed var(--warn)}
+  .change.short .c-val,.change.short .c-label{color:var(--warn)}
+  .done{width:100%;height:56px;border:none;border-radius:14px;background:var(--accent);color:var(--accent-ink);font-size:18px;font-weight:700;cursor:pointer}
+  .done:disabled{opacity:.4;cursor:default}
+  .ghost{width:100%;min-height:44px;padding:6px 10px;margin-top:8px;border:1px solid var(--line);border-radius:12px;background:none;color:var(--muted);font-size:15px;cursor:pointer}
+  .ghost:disabled{opacity:.4;cursor:default}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+  .stats div b{display:block;font-size:22px;font-variant-numeric:tabular-nums}
+  .stats div span{font-size:13px;color:var(--muted)}
+  .settings{display:none}
+  .settings.open{display:block}
+  .settings label{display:flex;justify-content:space-between;align-items:center;padding:6px 0}
+  .settings input{width:90px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:17px;padding:0 10px;text-align:right}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(80px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:15px;transition:transform .25s;pointer-events:none}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;padding:20px}
+  .modal.open{display:flex}
+  .modal .box{background:var(--card);border-radius:16px;padding:18px;max-width:340px;width:100%}
+  .modal .box p{margin:0 0 14px}
+  .modal .btns{display:flex;gap:8px}
+  .modal .btns button{flex:1;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:15px;cursor:pointer}
+  .modal .btns .danger{background:var(--warn);border-color:var(--warn);color:#fff}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>🎟️ Ticketkasse</h1>
+    <button class="icon-btn" id="toggleSettings">Preise</button>
+  </header>
+
+  <section class="card settings" id="settings">
+    <p class="sub">Preise anpassen</p>
+    <label>Erwachsene <input type="number" inputmode="decimal" step="0.5" id="pAdult"></label>
+    <label>Kinder <input type="number" inputmode="decimal" step="0.5" id="pChild"></label>
+  </section>
+
+  <section class="card">
+    <div class="row">
+      <div class="label"><b>Erwachsene</b><span id="lblAdult"></span></div>
+      <div class="stepper">
+        <button aria-label="Erwachsene weniger" data-t="a" data-d="-1">−</button>
+        <div class="count" id="cAdult">0</div>
+        <button class="plus" aria-label="Erwachsene mehr" data-t="a" data-d="1">+</button>
+      </div>
+    </div>
+    <div class="row">
+      <div class="label"><b>Kinder</b><span id="lblChild"></span></div>
+      <div class="stepper">
+        <button aria-label="Kinder weniger" data-t="c" data-d="-1">−</button>
+        <div class="count" id="cChild">0</div>
+        <button class="plus" aria-label="Kinder mehr" data-t="c" data-d="1">+</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="total"><span class="t-label">Total</span><span class="t-val" id="total">0.00</span></div>
+    <div class="breakdown" id="breakdown"></div>
+  </section>
+
+  <section class="card">
+    <p class="sub">Erhalten (antippen zum Addieren)</p>
+    <div class="cash">
+      <button data-cash="10">10</button>
+      <button data-cash="20">20</button>
+      <button data-cash="50">50</button>
+      <button data-cash="100">100</button>
+      <button data-cash="200">200</button>
+    </div>
+    <div class="given">
+      <input type="number" inputmode="decimal" id="given" placeholder="Betrag">
+      <button id="exact">Passend</button>
+      <button id="clearGiven">✕</button>
+    </div>
+    <div class="change" id="changeBox" hidden>
+      <span class="c-label" id="changeLabel">Rückgeld</span>
+      <span class="c-val" id="change">0.00</span>
+    </div>
+  </section>
+
+  <button class="done" id="done" disabled>Verkauf abschliessen</button>
+  <button class="ghost" id="reset">Zurücksetzen</button>
+
+  <section class="card" style="margin-top:16px">
+    <p class="sub">Heute verkauft</p>
+    <div class="total" style="margin-bottom:10px"><span class="t-label">Tickets total</span><span class="t-val" id="sTotal">0</span></div>
+    <div class="stats">
+      <div><b id="sAdult">0</b><span>Erwachsene</span></div>
+      <div><b id="sChild">0</b><span>Kinder</span></div>
+      <div><b id="sSum">0</b><span>Umsatz</span></div>
+    </div>
+    <button class="ghost" id="undo" disabled>↩︎ Letzten Verkauf rückgängig</button>
+    <button class="ghost" id="clearDay">Tag zurücksetzen</button>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+<div class="modal" id="modal">
+  <div class="box">
+    <p>Tageszählung wirklich auf 0 setzen?</p>
+    <div class="btns"><button id="mNo">Abbrechen</button><button class="danger" id="mYes">Zurücksetzen</button></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const KEY='ticketkasse-v1';
+  const _d=new Date(); const today=_d.getFullYear()+'-'+(_d.getMonth()+1)+'-'+_d.getDate();
+  let st={pa:18,pc:7,day:today,sa:0,sc:0,sum:0,log:[]};
+  try{const s=JSON.parse(localStorage.getItem(KEY)||'null'); if(s) st=Object.assign(st,s);}catch(e){}
+  if(!Array.isArray(st.log)) st.log=[];
+  if(st.day!==today){st.day=today;st.sa=0;st.sc=0;st.sum=0;st.log=[];}
+  const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(st));}catch(e){}};
+
+  let a=0,c=0,given=0;
+  const $=id=>document.getElementById(id);
+  const fmt=n=>(Math.round(n*100)/100).toFixed(2);
+  const short=n=>Number.isInteger(n)?String(n):fmt(n);
+
+  function render(){
+    const total=a*st.pa+c*st.pc;
+    $('cAdult').textContent=a; $('cChild').textContent=c;
+    $('lblAdult').textContent='je '+short(st.pa);
+    $('lblChild').textContent='je '+short(st.pc);
+    $('total').textContent=fmt(total);
+    const parts=[];
+    if(a) parts.push(a+' × '+short(st.pa));
+    if(c) parts.push(c+' × '+short(st.pc));
+    $('breakdown').textContent=parts.join('  +  ');
+    const box=$('changeBox');
+    if(given>0 && total>0){
+      box.hidden=false;
+      const diff=given-total;
+      if(diff>=0){box.classList.remove('short');$('changeLabel').textContent='Rückgeld';$('change').textContent=fmt(diff);}
+      else{box.classList.add('short');$('changeLabel').textContent='Fehlt noch';$('change').textContent=fmt(-diff);}
+    } else box.hidden=true;
+    $('done').disabled=!(total>0 && (given===0 || given>=total));
+    $('sTotal').textContent=st.sa+st.sc;
+    const last=st.log[st.log.length-1]; const ub=$('undo');
+    if(last){ub.disabled=false;const p=[];if(last.a)p.push(last.a+' Erw.');if(last.c)p.push(last.c+(last.c===1?' Kind':' Kinder'));ub.textContent='↩︎ Letzten Verkauf rückgängig ('+p.join(', ')+' · '+fmt(last.t)+')';}
+    else{ub.disabled=true;ub.textContent='↩︎ Letzten Verkauf rückgängig';}
+    $('sAdult').textContent=st.sa; $('sChild').textContent=st.sc; $('sSum').textContent=short(Math.round(st.sum*100)/100);
+  }
+
+  document.querySelectorAll('.stepper button').forEach(b=>b.addEventListener('click',()=>{
+    const d=+b.dataset.d;
+    if(b.dataset.t==='a') a=Math.max(0,a+d); else c=Math.max(0,c+d);
+    render();
+  }));
+  document.querySelectorAll('[data-cash]').forEach(b=>b.addEventListener('click',()=>{
+    given+= +b.dataset.cash; $('given').value=short(given); render();
+  }));
+  $('given').addEventListener('input',e=>{given=parseFloat(e.target.value.replace(',','.'))||0;render();});
+  $('exact').addEventListener('click',()=>{given=a*st.pa+c*st.pc;$('given').value=given?short(given):'';render();});
+  $('clearGiven').addEventListener('click',()=>{given=0;$('given').value='';render();});
+
+  function clearSale(){a=0;c=0;given=0;$('given').value='';render();}
+  $('reset').addEventListener('click',clearSale);
+  $('done').addEventListener('click',()=>{
+    const total=a*st.pa+c*st.pc;
+    st.sa+=a; st.sc+=c; st.sum+=total; st.log.push({a:a,c:c,t:total}); if(st.log.length>200) st.log.shift(); save();
+    toast('Verkauft: '+fmt(total));
+    clearSale();
+  });
+
+  $('toggleSettings').addEventListener('click',()=>$('settings').classList.toggle('open'));
+  $('pAdult').value=st.pa; $('pChild').value=st.pc;
+  $('pAdult').addEventListener('input',e=>{const v=parseFloat(e.target.value);if(v>=0){st.pa=v;save();render();}});
+  $('pChild').addEventListener('input',e=>{const v=parseFloat(e.target.value);if(v>=0){st.pc=v;save();render();}});
+
+  $('clearDay').addEventListener('click',()=>$('modal').classList.add('open'));
+  $('mNo').addEventListener('click',()=>$('modal').classList.remove('open'));
+  $('undo').addEventListener('click',()=>{
+    const s=st.log.pop(); if(!s) return;
+    st.sa=Math.max(0,st.sa-s.a); st.sc=Math.max(0,st.sc-s.c); st.sum=Math.max(0,st.sum-s.t); save(); render();
+    toast('Rückgängig: '+fmt(s.t));
+  });
+  $('mYes').addEventListener('click',()=>{st.sa=0;st.sc=0;st.sum=0;st.log=[];save();render();$('modal').classList.remove('open');});
+
+  let tt;
+  function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),1600);}
+
+  render();
+})();
+</script>
+</body>
+</html>
