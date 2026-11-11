@@ -13,6 +13,7 @@
     :root{ --bg:#16150f; --card:#221f19; --ink:#f2eee6; --muted:#a39d91; --line:#36322a; --accent:#3fae8f; --accent-ink:#0f1a16; --warn:#e2725a; --soft:#1d2c27; }
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  [hidden]{display:none!important}
   body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif}
   main{max-width:480px;margin:0 auto;padding:calc(16px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) calc(28px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left))}
   header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
@@ -177,7 +178,11 @@
       const diff=given-total;
       if(diff>=0){box.classList.remove('short');$('changeLabel').textContent='Rückgeld';$('change').textContent=fmt(diff);}
       else{box.classList.add('short');$('changeLabel').textContent='Fehlt noch';$('change').textContent=fmt(-diff);}
-    } else box.hidden=true;
+    } else {
+      // Nach einem Verkauf oder beim Zurücksetzen: Rückgeld ausblenden und auf 0 setzen
+      box.hidden=true; box.classList.remove('short');
+      $('changeLabel').textContent='Rückgeld'; $('change').textContent='0.00';
+    }
     $('done').disabled=!(total>0 && (given===0 || given>=total));
     $('sTotal').textContent=st.sa+st.sc;
     const last=st.log[st.log.length-1]; const ub=$('undo');
